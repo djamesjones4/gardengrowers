@@ -1,5 +1,3 @@
-
-
 const express = require('express');
 const router = express.Router();
 const knex = require('../knex')
@@ -13,8 +11,7 @@ router.get('/', function(req, res, next) {
     if (payload) {
       user_id = payload.id;
       userPlants(user_id);
-    }
-    else if (err) {
+    } else if (err) {
       res.redirect('/');
     }
   });
@@ -23,70 +20,56 @@ router.get('/', function(req, res, next) {
     knex('user_plants')
       .where('user_id', user_id)
       .then((data) => {
-        if (data.length === 0) {
-          knex('users')
-            .where('id', user_id)
-            .then(userData => {
-              res.render('home', {
-                gardenName: userData[0].garden_name,
-                numberOfPlants: 0
+          if (data.length === 0) {
+            knex('users')
+              .where('id', user_id)
+              .then(userData => {
+                res.render('home', {
+                  gardenName: userData[0].garden_name,
+                  numberOfPlants: 0
+                })
               })
-            })
-        }
-        else {
-<<<<<<< HEAD
-          Promise.all([findUserPlants(user_id), countUserPlants(user_id), commonPlants(user_id)])
-          .then(values => {
-            let [userPlants, count, commonPlants] = values;
-            res.render('home', {
-              gardenName: userPlants[0].garden_name,
-              userPlants,
-              numberOfPlants: count[0].count,
-              commonPlants,
-              zip: userPlants[0].zip
-            })
-=======
-          knex('user_plants')
-            .where('user_id', user_id)
-            .join('users', 'users.id', 'user_plants.user_id')
-            .join('plants', 'plants.id', 'user_plants.plant_id')
-            .select(['users.garden_name', 'plants.common_name', 'plants.scientific_name', 'user_plants.description', 'user_plants.photo', 'zipcode'])
-            .then((userPlants) => {
-              let zip = userPlants[0].zipcode
-              // console.log(zip);
-              let gardenName = userPlants[0].garden_name;
-              res.render('home', { gardenName, userPlants, zip });
->>>>>>> weather_API
-            });
-          })
-        }
-      });
-  }
+          } else {
+            Promise.all([findUserPlants(user_id), countUserPlants(user_id), commonPlants(user_id)])
+              .then(values => {
+                let [userPlants, count, commonPlants] = values;
+                res.render('home', {
+                  gardenName: userPlants[0].garden_name,
+                  userPlants,
+                  numberOfPlants: count[0].count,
+                  commonPlants,
+                  zip: userPlants[0].zipcode
+                })
+              });
+          // })
+      }
+  });
+}
 });
 
 router.get('/labelsAndData', function(req, res, next) {
   function userPlantforGraph(user_id) {
     knex('user_plants')
-    .join('plants', 'user_plants.plant_id', '=', 'plants.id')
-    .where('user_plants.user_id', user_id)
-    .select('plants.common_name', 'plant_count')
-    .then((data) => {
-      let chartData = data.map(plant => {
-        return plant.plant_count;
+      .join('plants', 'user_plants.plant_id', '=', 'plants.id')
+      .where('user_plants.user_id', user_id)
+      .select('plants.common_name', 'plant_count')
+      .then((data) => {
+        let chartData = data.map(plant => {
+          return plant.plant_count;
+        });
+        let chartLabels = data.map(plant => {
+          return plant.common_name;
+        });
+        res.set('Content-Type', 'application/json');
+        res.send({
+          data: chartData,
+          labels: chartLabels
+        });
+      })
+      .catch((err) => {
+        res.status(404);
+        res.send("Couldn't find UserId");
       });
-      let chartLabels = data.map(plant => {
-        return plant.common_name;
-      });
-      res.set('Content-Type', 'application/json');
-      res.send({
-        data: chartData,
-        labels: chartLabels
-      });
-    })
-    .catch((err) => {
-      res.status(404);
-      res.send("Couldn't find UserId");
-    });
   }
 
   let user_id;
@@ -95,8 +78,7 @@ router.get('/labelsAndData', function(req, res, next) {
     if (payload) {
       user_id = payload.id;
       userPlantforGraph(user_id);
-    }
-    else if (err) {
+    } else if (err) {
       res.redirect('/');
     }
   });
@@ -116,8 +98,7 @@ router.post('/', function(req, res, next) {
   jwt.verify(req.cookies.token, process.env.JWT_KEY, (err, payload) => {
     if (payload) {
       user_id = payload.id;
-    }
-    else if (err) {
+    } else if (err) {
       res.redirect('/home');
     }
   });
@@ -136,8 +117,7 @@ router.post('/', function(req, res, next) {
             plant_id = insertedPlant[0].id;
             insertUserPlant();
           });
-      }
-      else {
+      } else {
         plant_id = searchedPlant[0].id;
         insertUserPlant();
       }
@@ -160,16 +140,16 @@ function findUserPlants(user_id) {
     .where('user_id', user_id)
     .join('users', 'users.id', 'user_plants.user_id')
     .join('plants', 'plants.id', 'user_plants.plant_id')
-    .select(['users.garden_name', 'plants.common_name', 'plants.scientific_name', 'user_plants.description', 'user_plants.photo', 'user_plants.created_at', 'user_plants.plant_id', 'user.zipcode'])
+    .select(['users.garden_name', 'plants.common_name', 'plants.scientific_name', 'user_plants.description', 'user_plants.photo', 'user_plants.created_at', 'user_plants.plant_id', 'users.zipcode'])
 }
 
 function commonPlants(user_id) {
   return knex('user_plants')
-  .join('plants', 'plants.id', '=', 'user_plants.plant_id')
-  .where('user_id', user_id)
-  .select('common_name', 'plant_count')
-  .orderBy('plant_count', 'desc')
-  .limit(3)
+    .join('plants', 'plants.id', '=', 'user_plants.plant_id')
+    .where('user_id', user_id)
+    .select('common_name', 'plant_count')
+    .orderBy('plant_count', 'desc')
+    .limit(3)
 }
 
 function insertUserPlant() {
