@@ -1,3 +1,5 @@
+
+
 const express = require('express');
 const router = express.Router();
 const knex = require('../knex')
@@ -32,6 +34,7 @@ router.get('/', function(req, res, next) {
             })
         }
         else {
+<<<<<<< HEAD
           Promise.all([findUserPlants(user_id), countUserPlants(user_id), commonPlants(user_id)])
           .then(values => {
             let [userPlants, count, commonPlants] = values;
@@ -39,7 +42,21 @@ router.get('/', function(req, res, next) {
               gardenName: userPlants[0].garden_name,
               userPlants,
               numberOfPlants: count[0].count,
-              commonPlants
+              commonPlants,
+              zip: userPlants[0].zip
+            })
+=======
+          knex('user_plants')
+            .where('user_id', user_id)
+            .join('users', 'users.id', 'user_plants.user_id')
+            .join('plants', 'plants.id', 'user_plants.plant_id')
+            .select(['users.garden_name', 'plants.common_name', 'plants.scientific_name', 'user_plants.description', 'user_plants.photo', 'zipcode'])
+            .then((userPlants) => {
+              let zip = userPlants[0].zipcode
+              // console.log(zip);
+              let gardenName = userPlants[0].garden_name;
+              res.render('home', { gardenName, userPlants, zip });
+>>>>>>> weather_API
             });
           })
         }
@@ -143,7 +160,7 @@ function findUserPlants(user_id) {
     .where('user_id', user_id)
     .join('users', 'users.id', 'user_plants.user_id')
     .join('plants', 'plants.id', 'user_plants.plant_id')
-    .select(['users.garden_name', 'plants.common_name', 'plants.scientific_name', 'user_plants.description', 'user_plants.photo', 'user_plants.created_at', 'user_plants.plant_id'])
+    .select(['users.garden_name', 'plants.common_name', 'plants.scientific_name', 'user_plants.description', 'user_plants.photo', 'user_plants.created_at', 'user_plants.plant_id', 'user.zipcode'])
 }
 
 function commonPlants(user_id) {
@@ -185,5 +202,10 @@ router.delete('/', (req, res, next) => {
     }
   })
 })
+
+
+
+
+
 
 module.exports = router;
